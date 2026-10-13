@@ -187,9 +187,16 @@ export const InteractiveSandbox: React.FC<InteractiveSandboxProps> = ({
     soundFx.playClick();
   }, []);
 
+  const lastHandledAppRef = useRef<string | null>(null);
+
   // Real-time app launcher trigger from voice commands
   useEffect(() => {
-    if (!appToOpen) return;
+    if (!appToOpen) {
+      lastHandledAppRef.current = null;
+      return;
+    }
+    if (lastHandledAppRef.current === appToOpen) return;
+    lastHandledAppRef.current = appToOpen;
 
     if (appToOpen === 'OPEN_ALL_APPS') {
       openAllApps();
@@ -237,7 +244,7 @@ export const InteractiveSandbox: React.FC<InteractiveSandboxProps> = ({
         openApp('browser');
       }
     }
-  }, [appToOpen, openApp, closeApp, openAllApps, closeAllApps, tileWindows]);
+  }, [appToOpen, openApp, closeApp, openAllApps, closeAllApps, tileWindows, activeWindow]);
 
   // Audio synthesizer for cyber music deck
   const toggleMusicSynth = () => {

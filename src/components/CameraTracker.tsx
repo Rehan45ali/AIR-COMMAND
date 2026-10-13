@@ -27,23 +27,33 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
   const simClockRef = useRef<number>(0);
   const simActionRef = useRef<string>('MOVE');
 
-  // Enumerate video devices
-  const updateDevices = useCallback(async () => {
-    try {
-      if (navigator.mediaDevices?.enumerateDevices) {
-        const devList = await navigator.mediaDevices.enumerateDevices();
-        const videoDevs = devList.filter((d) => d.kind === 'videoinput');
-        setDevices(videoDevs);
-        if (videoDevs.length > 0 && !selectedDevice) {
-          setSelectedDevice(videoDevs[0].deviceId);
-        }
-      }
-    } catch {}
-  }, [selectedDevice]);
-
+  const onHandDetectedRef = useRef(onHandDetected);
   useEffect(() => {
-    updateDevices();
-  }, [updateDevices]);
+    onHandDetectedRef.current = onHandDetected;
+  }, [onHandDetected]);
+
+  // Enumerate video devices safely once on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDevices = async () => {
+      try {
+        if (navigator.mediaDevices?.enumerateDevices) {
+          const devList = await navigator.mediaDevices.enumerateDevices();
+          const videoDevs = devList.filter((d) => d.kind === 'videoinput');
+          if (isMounted) {
+            setDevices(videoDevs);
+            if (videoDevs.length > 0) {
+              setSelectedDevice((prev) => (prev ? prev : videoDevs[0].deviceId || ''));
+            }
+          }
+        }
+      } catch {}
+    };
+    fetchDevices();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Start real webcam stream
   const startCamera = async () => {
@@ -140,12 +150,12 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
                   ctx.fill();
                 });
 
-                onHandDetected({
+                onHandDetectedRef.current({
                   landmarks,
                   handedness: results.multiHandedness?.[0]?.label || 'Right',
                 });
               } else {
-                onHandDetected(null);
+                onHandDetectedRef.current(null);
               }
             }
           }
@@ -187,7 +197,7 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
       if (cameraInstance) cameraInstance.stop();
       if (handsInstance) handsInstance.close();
     };
-  }, [cameraActive, isSimulatedMode, onHandDetected]);
+  }, [cameraActive, isSimulatedMode]);
 
   // Synthetic Hand Simulation Loop (works without physical webcam)
   useEffect(() => {
@@ -284,13 +294,7 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
       syntheticLandmarks.push({ x: centerX + scale * 0.28, y: centerY + scale * 0.50, z: 0.02 });
       syntheticLandmarks.push({ x: centerX + scale * 0.28, y: centerY + scale * 0.48, z: 0.03 });
 
-      // Landmark 17..20: Pinky finger (curled)
-      syntheticLandmarks.push({ x: centerX + scale * 0.28, y: centerY + scale * 0.42, z: 0 });
-      syntheticLandmarks.push({ x: centerX + scale * 0.28, y: centerY + scale * 0.32, z: 0.01 });
-      syntheticLandmarks.push({ x: centerX + scale * 0.28, y: centerY + scale * 0.40, z: 0.02 });
-      syntheticLandmarks.push({ x: centerX + scale * 0.28, y: centerY + scale * 0.46, z: 0.03 });
-
-      onHandDetected({
+      onHandDetectedRef.current({
         landmarks: syntheticLandmarks,
         handedness: 'Right',
       });
@@ -341,7 +345,7 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
     return () => {
       if (simAnimRef.current) cancelAnimationFrame(simAnimRef.current);
     };
-  }, [isSimulatedMode, onHandDetected]);
+  }, [isSimulatedMode]);
 
   return (
     <div className={`flex flex-col bg-slate-900/90 rounded-2xl border border-slate-800 p-3.5 backdrop-blur-md shadow-xl ${className}`}>

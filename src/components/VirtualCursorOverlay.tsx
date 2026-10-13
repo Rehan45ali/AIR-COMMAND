@@ -37,23 +37,34 @@ export const VirtualCursorOverlay: React.FC<VirtualCursorOverlayProps> = ({
     });
   }, [x, y, enabled, isPaused]);
 
-  // Trigger ripple on click events
+  const prevGestureRef = React.useRef<GestureType>(gesture);
+  const posRef = React.useRef<{ x: number; y: number }>({ x, y });
+  posRef.current = { x, y };
+
+  // Trigger ripple on click gesture transition only
   useEffect(() => {
-    if (gesture === 'LEFT_CLICK' || gesture === 'DOUBLE_CLICK' || gesture === 'RIGHT_CLICK') {
+    const prev = prevGestureRef.current;
+    prevGestureRef.current = gesture;
+
+    const isClick = gesture === 'LEFT_CLICK' || gesture === 'DOUBLE_CLICK' || gesture === 'RIGHT_CLICK';
+    const wasClick = prev === 'LEFT_CLICK' || prev === 'DOUBLE_CLICK' || prev === 'RIGHT_CLICK';
+
+    if (isClick && (!wasClick || gesture !== prev)) {
+      const currentPos = posRef.current;
       const newRipple: ClickRipple = {
         id: Date.now() + Math.random(),
-        x,
-        y,
+        x: currentPos.x,
+        y: currentPos.y,
         type: gesture === 'RIGHT_CLICK' ? 'right' : gesture === 'DOUBLE_CLICK' ? 'double' : 'left',
       };
-      setRipples((prev) => [...prev.slice(-3), newRipple]);
+      setRipples((prevList) => [...prevList.slice(-3), newRipple]);
 
       const timer = setTimeout(() => {
-        setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
+        setRipples((prevList) => prevList.filter((r) => r.id !== newRipple.id));
       }, 700);
       return () => clearTimeout(timer);
     }
-  }, [gesture, x, y]);
+  }, [gesture]);
 
   if (!enabled) return null;
 

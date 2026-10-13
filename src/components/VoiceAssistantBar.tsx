@@ -306,7 +306,7 @@ export const VoiceAssistantBar: React.FC<VoiceAssistantBarProps> = ({
   // Audio level animation for listening indicator
   useEffect(() => {
     if (!isListening) {
-      setAudioLevel(0);
+      setAudioLevel((prev) => (prev !== 0 ? 0 : prev));
       return;
     }
     const interval = setInterval(() => {
