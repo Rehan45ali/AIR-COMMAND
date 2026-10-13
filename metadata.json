@@ -1,0 +1,6 @@
+{
+  "name": "GestureMouse AI - Voice & 3D Hand Tracking Virtual Mouse",
+  "description": "Professional AI-powered virtual mouse system combining real-time 3D hand tracking via MediaPipe & Three.js with voice commands, customizable sensitivity, and gesture profiles.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
